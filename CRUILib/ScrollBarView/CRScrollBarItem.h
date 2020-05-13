@@ -19,6 +19,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CRCustomBarItem : UIBarItem
 
+@property(nullable, nonatomic)         SEL                  action;
+@property(nullable, nonatomic, weak)   id                   target;
+@property(nonatomic)         CGFloat              width;
+
 - (instancetype)initWithImage:(nullable UIImage *)image
                         style:(UIBarButtonItemStyle)style
                        target:(nullable id)target
@@ -29,10 +33,7 @@ NS_ASSUME_NONNULL_BEGIN
                        target:(nullable id)target
                        action:(nullable SEL)action;
 
-@property(nonatomic)         CGFloat              width;
 
-@property(nullable, nonatomic)         SEL                  action;
-@property(nullable, nonatomic,weak)    id                   target;
 
 @end
 
