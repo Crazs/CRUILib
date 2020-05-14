@@ -34,6 +34,9 @@
 
 @implementation CRScrollBar
 
+- (instancetype)init{
+    return [self initWithConfig:[CRScrollBarConfig defaultConfig]];
+}
 - (instancetype)initWithConfig:(CRScrollBarConfig *)config{
     self = [super init];
     if (self) {
@@ -213,6 +216,9 @@
 
 #pragma mark - Function
 - (void)selecteIndex:(NSUInteger)index{
+    if (self.delegate && [self.delegate respondsToSelector:@selector(crScrollBar:canSelectIndex:)] && ![self.delegate crScrollBar:self canSelectIndex:index]) {
+        return;
+    }
     UIButton *selectBtn = [_rScrollView viewWithTag:kTagOffset + index];
     if (selectBtn) {
         if (index != _selectedIndex && kDefaultSelectIdx != _selectedIndex) {
@@ -241,7 +247,7 @@
 
 
 - (void)clickScrollButton:(UIButton *)button{
-    // 1.取消选中
+    
     [self selecteIndex:button.tag - kTagOffset];
 }
 

@@ -14,7 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class CRScrollBar;
 @protocol CRScrollBarDelegate <NSObject>
-
+@optional
 - (BOOL)crScrollBar:(CRScrollBar *)scrollBar canSelectIndex:(NSUInteger)index;
 /**
  @warning   重复选中相同的index，crScrollBar:didSelectedIndex 也会被重复调用！！！与didDeselectedIndex相反
