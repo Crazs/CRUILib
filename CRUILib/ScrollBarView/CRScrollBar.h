@@ -39,6 +39,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, assign, readonly) NSUInteger indexForSelected;    // 如果没有任何选中，返回0xFFFF
 
+@property (nonatomic, strong) UIColor *tintColor;
+@property (nonatomic, strong) UIColor *selectedColor;
+@property (nonatomic, strong) UIView *shadowView;
+
 /**
  @brief     创建实例对象
  */

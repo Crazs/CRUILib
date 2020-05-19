@@ -56,8 +56,15 @@
     _rScrollView.showsVerticalScrollIndicator = NO;
     _rScrollView.showsHorizontalScrollIndicator = NO;
     [self addSubview:_rScrollView];
-    
+    _rScrollView.backgroundColor = UIColor.whiteColor;
+#if BKCOLOR
     _rScrollView.backgroundColor = UIColor.brownColor;
+#endif
+    _shadowView = [[UIView alloc] init];
+    _shadowView.bounds = CGRectMake(0, CGRectGetHeight(self.bounds)-1, CGRectGetWidth(self.bounds), 1);
+    _shadowView.backgroundColor = UIColor.lightGrayColor;
+    _shadowView.autoresizingMask = UIViewAutoresizingFlexibleWidth |UIViewAutoresizingFlexibleTopMargin;
+    [self addSubview:_shadowView];
 }
 
 #pragma mark - view
@@ -210,7 +217,10 @@
     btnSize.width += (_config.scrollItemOffset * 2);        // 扩大范围
     button.bounds = CGRectMake(0, 0, btnSize.width, btnSize.height);
     button.crScrollRealWidth = btnSize.width;
-    button.backgroundColor = UIColor.redColor;
+    button.backgroundColor = UIColor.whiteColor;
+#if BKCOLOR
+    button.backgroundColor = UIColor.redColor ;
+#endif
 }
 
 
@@ -229,7 +239,7 @@
         selectBtn.selected = YES;
         _selectedIndex = index;
         if ([self.delegate respondsToSelector:@selector(crScrollBar:didSelectedIndex:)]) {
-            [self.delegate crScrollBar:self didDeselectedIndex:_selectedIndex];
+            [self.delegate crScrollBar:self didSelectedIndex:_selectedIndex];
         }
     }
 }
@@ -300,6 +310,26 @@
 
 - (NSUInteger)indexForSelected{
     return _selectedIndex;
+}
+
+- (void)setTintColor:(UIColor *)tintColor{
+    if (self.tintColor == tintColor) {
+        return;
+    }
+    _tintColor = tintColor;
+    for (UIButton *btn in _middleButtonView) {
+        [btn setTintColor:tintColor];
+    }
+}
+
+- (void)setSelectedColor:(UIColor *)selectedColor{
+    if (self.selectedColor == selectedColor) {
+        return;
+    }
+    _selectedColor = selectedColor;
+    for (UIButton *btn in _middleButtonView) {
+        [btn setTitleColor:selectedColor forState:UIControlStateSelected];
+    }
 }
 
 @end
