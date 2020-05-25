@@ -8,7 +8,7 @@ Pod::Spec.new do |spec|
   spec.homepage     = "https://github.com/Crazs/CRUILib"
   spec.license      = "MIT"
   spec.author       = { "Crazs" => "zhouwtzs@163.com" }
-  spec.platform     = :ios
+  spec.platform     = :ios, "9.0"
   spec.source       = { :git => "https://github.com/Crazs/CRUILib.git", :tag => "#{spec.version}" }
   
   spec.source_files = "CRHelperLib/*.{h,m}"

@@ -41,7 +41,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, strong) UIColor *tintColor;
 @property (nonatomic, strong) UIColor *selectedColor;
-@property (nonatomic, strong) UIView *shadowView;
+@property (nonatomic, strong) CALayer *shadowLayer;
 
 /**
  @brief     创建实例对象

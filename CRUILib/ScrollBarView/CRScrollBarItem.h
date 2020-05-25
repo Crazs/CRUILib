@@ -12,6 +12,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CRScrollBarItem : UIBarItem
 
++ (instancetype)itemWithTitle:(nullable NSString *)title;
++ (instancetype)itemWithImage:(nullable UIImage *)image;
+
 - (instancetype)initWithTitle:(nullable NSString *)title;
 - (instancetype)initWithImage:(nullable UIImage *)image;
 
@@ -22,6 +25,16 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nullable, nonatomic)         SEL                  action;
 @property(nullable, nonatomic, weak)   id                   target;
 @property(nonatomic)         CGFloat              width;
+
++ (instancetype)itemWithImage:(nullable UIImage *)image
+                        style:(UIBarButtonItemStyle)style
+                       target:(nullable id)target
+                       action:(nullable SEL)action;
+
++ (instancetype)itemWithTitle:(nullable NSString *)title
+                        style:(UIBarButtonItemStyle)style
+                       target:(nullable id)target
+                       action:(nullable SEL)action;
 
 - (instancetype)initWithImage:(nullable UIImage *)image
                         style:(UIBarButtonItemStyle)style

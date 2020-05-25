@@ -13,6 +13,14 @@
 @synthesize title;
 @synthesize image;
 
++ (instancetype)itemWithTitle:(nullable NSString *)title{
+    return [[self alloc] initWithTitle:title];
+}
+
++ (instancetype)itemWithImage:(nullable UIImage *)image{
+    return [[self alloc] initWithImage:image];
+}
+
 - (instancetype)initWithTitle:(NSString *)title{
     self = [super init];
     if (self) {
@@ -36,6 +44,20 @@
 
 @synthesize title;
 @synthesize image;
+
++ (instancetype)itemWithImage:(nullable UIImage *)image
+                        style:(UIBarButtonItemStyle)style
+                       target:(nullable id)target
+                       action:(nullable SEL)action{
+    return [[self alloc] initWithImage:image style:style target:target action:action];
+}
+
++ (instancetype)itemWithTitle:(nullable NSString *)title
+                        style:(UIBarButtonItemStyle)style
+                       target:(nullable id)target
+                       action:(nullable SEL)action{
+    return [[self alloc] initWithTitle:title style:style target:target action:action];
+}
 
 - (instancetype)initWithImage:(nullable UIImage *)image
                         style:(UIBarButtonItemStyle)style

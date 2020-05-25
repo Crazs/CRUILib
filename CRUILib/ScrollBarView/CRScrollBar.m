@@ -38,7 +38,7 @@
     return [self initWithConfig:[CRScrollBarConfig defaultConfig]];
 }
 - (instancetype)initWithConfig:(CRScrollBarConfig *)config{
-    self = [super init];
+    self = [super initWithFrame:CGRectMake(0, 0, 375, 44)];
     if (self) {
         _config = config;
         _rightButtonView = [[NSMutableArray alloc] init];
@@ -55,22 +55,22 @@
     _rScrollView = [[UIScrollView alloc] init];
     _rScrollView.showsVerticalScrollIndicator = NO;
     _rScrollView.showsHorizontalScrollIndicator = NO;
+    _rScrollView.decelerationRate = UIScrollViewDecelerationRateFast;
     [self addSubview:_rScrollView];
     _rScrollView.backgroundColor = UIColor.whiteColor;
-#if BKCOLOR
-    _rScrollView.backgroundColor = UIColor.brownColor;
-#endif
-    _shadowView = [[UIView alloc] init];
-    _shadowView.bounds = CGRectMake(0, CGRectGetHeight(self.bounds)-1, CGRectGetWidth(self.bounds), 1);
-    _shadowView.backgroundColor = UIColor.lightGrayColor;
-    _shadowView.autoresizingMask = UIViewAutoresizingFlexibleWidth |UIViewAutoresizingFlexibleTopMargin;
-    [self addSubview:_shadowView];
+
+    _shadowLayer = [CALayer layer];
+    _shadowLayer.backgroundColor = UIColor.lightGrayColor.CGColor;
+    [self.layer addSublayer:_shadowLayer];
 }
 
 #pragma mark - view
 - (void)layoutSubviews{
     [super layoutSubviews];
-    NSLog(@"%s begin layoutSubviews", __FILE_NAME__);
+    NSLog(@"%@",_shadowLayer);
+    // shadow
+    _shadowLayer.frame = CGRectMake(0, CGRectGetHeight(self.bounds)-1, CGRectGetWidth(self.bounds), 1);
+
     
     CGFloat itemHei = self.bounds.size.height - _config.padding.top - _config.padding.bottom - _config.itemMargin.top - _config.itemMargin.bottom;
     CGFloat itemTop = _config.padding.top + _config.itemMargin.top;
@@ -212,6 +212,7 @@
         }
     }else if (item.image){
         [button setImage:item.image forState:UIControlStateNormal];
+        button.imageView.contentMode = UIViewContentModeScaleAspectFit;
         btnSize = _config.imageSize;
     }
     btnSize.width += (_config.scrollItemOffset * 2);        // 扩大范围
