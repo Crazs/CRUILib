@@ -38,7 +38,7 @@
     self = [self init];
     if (self) {
         _viewControllers = [viewControllers copy];
-        [_scrollBar setMiddleItem:scrollBarItems];
+        [_scrollBar setMiddleItems:scrollBarItems];
     }
     return self;
 }

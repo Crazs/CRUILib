@@ -21,7 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (void)crScrollBar:(CRScrollBar *)scrollBar didSelectedIndex:(NSUInteger)index;
 /**
- @warning   重复选中相同的index，crScrollBar:didDeselectedIndex 不会被重复调用！！！
+ @warning   重复取消选中相同的index，crScrollBar:didDeselectedIndex 不会被重复调用！！！
  */
 - (void)crScrollBar:(CRScrollBar *)scrollBar didDeselectedIndex:(NSUInteger)index;
 
@@ -33,15 +33,14 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, weak) id<CRScrollBarDelegate> delegate;
 
-@property (nonatomic, copy) NSArray<UIBarButtonItem *> *leftItem;
-@property (nonatomic, copy) NSArray<UIBarButtonItem *> *rightItem;
-@property (nonatomic, copy) NSArray<CRScrollBarItem *> *middleItem;
+@property (nonatomic, copy) NSArray<UIBarButtonItem *> *leftItems;
+@property (nonatomic, copy) NSArray<UIBarButtonItem *> *rightItems;
+@property (nonatomic, copy) NSArray<CRScrollBarItem *> *middleItems;
 
 @property (nonatomic, assign, readonly) NSUInteger indexForSelected;    // 如果没有任何选中，返回0xFFFF
 
 @property (nonatomic, strong) UIColor *tintColor;
 @property (nonatomic, strong) UIColor *selectedColor;
-@property (nonatomic, strong) CALayer *shadowLayer;
 
 /**
  @brief     创建实例对象
@@ -52,11 +51,12 @@ NS_ASSUME_NONNULL_BEGIN
  @brief     选中index
  */
 - (void)selecteIndex:(NSUInteger)index;
+- (void)selecteIndex:(NSUInteger)index animal:(BOOL)animal;
 /**
  @brief     取消选中index
  */
 - (void)deselectIndex:(NSUInteger)index;
-
+- (void)deselectIndex:(NSUInteger)index animal:(BOOL)animal;
 /**
  @brief     刷新功能，刷新局部
  @note      暂时先不做

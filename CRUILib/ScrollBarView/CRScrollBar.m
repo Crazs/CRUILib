@@ -22,12 +22,18 @@
 
 @interface CRScrollBar (){
     UIScrollView *_rScrollView;
-    NSMutableArray *_leftButtonView;
-    NSMutableArray *_rightButtonView;
-    NSMutableArray *_middleButtonView;
-    BOOL _scrollItemFixed;       // scroll item 是否采用固定宽度
-    CGFloat _scrollItemTotalWidth;   // scroll item 的整体宽度（包含间隔）
+    UIView *_leftContainView;
+    UIView *_rightContainView;
+//    NSMutableArray *_leftButtonViews;
+//    NSMutableArray *_rightButtonViews;
+    NSMutableArray *_middleButtonViews;
+    BOOL _scrollItemFixed;              // scroll item 是否采用固定宽度
+    CGFloat _scrollItemTotalWidth;      // scroll item 的整体宽度（包含间隔）
     NSUInteger _selectedIndex;
+    
+    BOOL _refreshLeft;                  // 是否刷新左侧
+    BOOL _refreshRight;                 // 是否刷新右侧
+    BOOL _recordItemHeight;             // 记录Item高度
 }
 
 @end
@@ -41,9 +47,7 @@
     self = [super initWithFrame:CGRectMake(0, 0, 375, 44)];
     if (self) {
         _config = config;
-        _rightButtonView = [[NSMutableArray alloc] init];
-        _leftButtonView = [[NSMutableArray alloc] initWithCapacity:0];
-        _middleButtonView = [[NSMutableArray alloc] initWithCapacity:0];
+        _middleButtonViews = [[NSMutableArray alloc] initWithCapacity:0];
         _selectedIndex = kDefaultSelectIdx;
         
         [self createScrollView];
@@ -58,50 +62,48 @@
     _rScrollView.decelerationRate = UIScrollViewDecelerationRateFast;
     [self addSubview:_rScrollView];
     _rScrollView.backgroundColor = UIColor.whiteColor;
-
-    _shadowLayer = [CALayer layer];
-    _shadowLayer.backgroundColor = UIColor.lightGrayColor.CGColor;
-    [self.layer addSublayer:_shadowLayer];
 }
 
 #pragma mark - view
 - (void)layoutSubviews{
     [super layoutSubviews];
-    NSLog(@"%@",_shadowLayer);
-    // shadow
-    _shadowLayer.frame = CGRectMake(0, CGRectGetHeight(self.bounds)-1, CGRectGetWidth(self.bounds), 1);
 
+    CGFloat itemTop = _config.padding.top + _config.itemMargin.top;
+    CGFloat leftX = _config.padding.left;
+    CGFloat rightX = CGRectGetWidth(self.bounds) - _config.padding.right;
     
     CGFloat itemHei = self.bounds.size.height - _config.padding.top - _config.padding.bottom - _config.itemMargin.top - _config.itemMargin.bottom;
-    CGFloat itemTop = _config.padding.top + _config.itemMargin.top;
+    BOOL heightChange = itemHei == _recordItemHeight;
+
     /// left
-    CGFloat leftX = _config.padding.left;
-    for (UIButton *button in _leftButtonView) {
-        CGRect btnFrame = CGRectMake(0, itemTop, CGRectGetWidth(button.bounds), itemHei);
-        btnFrame.origin.x = leftX + _config.itemMargin.left;
-        button.frame = btnFrame;
-        button.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleRightMargin;
-        
-        leftX += (btnFrame.size.width + _config.itemMargin.left + _config.itemMargin.right);
-    }
-    /// right
-    CGFloat rightX = CGRectGetWidth(self.bounds) - _config.padding.right;
-    for (UIButton *button in _rightButtonView) {
-        CGRect btnFrame = CGRectMake(0, itemTop, CGRectGetWidth(button.bounds), itemHei);
-        btnFrame.origin.x = (rightX - _config.itemMargin.left - _config.itemMargin.right - CGRectGetWidth(btnFrame));
-        button.frame = btnFrame;
-        button.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleLeftMargin;
-        
-        rightX -= (btnFrame.size.width + _config.itemMargin.left + _config.itemMargin.right);
+    if (heightChange && _refreshLeft) {
+        for (UIButton *button in _leftContainView.subviews) {
+            CGRect btnFrame = CGRectMake(0, itemTop, CGRectGetWidth(button.bounds), itemHei);
+            btnFrame.origin.x = leftX + _config.itemMargin.left;
+            button.frame = btnFrame;
+            
+            leftX += (btnFrame.size.width + _config.itemMargin.left + _config.itemMargin.right);
+        }
     }
     
+    /// right
+    if (heightChange && _refreshRight) {
+        for (UIButton *button in _rightContainView.subviews) {
+            CGRect btnFrame = CGRectMake(0, itemTop, CGRectGetWidth(button.bounds), itemHei);
+            btnFrame.origin.x = (rightX - _config.itemMargin.left - _config.itemMargin.right - CGRectGetWidth(btnFrame));
+            button.frame = btnFrame;
+            button.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleLeftMargin;
+            
+            rightX -= (btnFrame.size.width + _config.itemMargin.left + _config.itemMargin.right);
+        }
+    }
     CGRect scrollVFrame = CGRectMake(leftX, itemTop, MAX(0, rightX - leftX) , itemHei);
     _rScrollView.frame = scrollVFrame;
     [self layoutScrollViewSubviews];
 }
 
 - (void)layoutScrollViewSubviews{
-    if (0 == _middleButtonView.count) {
+    if (0 == _middleButtonViews.count) {
         _rScrollView.contentSize = _rScrollView.bounds.size;
         _rScrollView.contentOffset = CGPointZero;
         return;
@@ -116,8 +118,8 @@
         _rScrollView.contentSize = _rScrollView.bounds.size;
         _rScrollView.contentOffset = CGPointZero;
         
-        CGFloat itemWid = (CGRectGetWidth(_rScrollView.bounds) - _config.scrollPadding.left - _config.scrollPadding.right -  _config.scrollItemInterval * (_middleButtonView.count - 1)) / _middleButtonView.count;
-        for (UIButton *button in _middleButtonView) {
+        CGFloat itemWid = (CGRectGetWidth(_rScrollView.bounds) - _config.scrollPadding.left - _config.scrollPadding.right -  _config.scrollItemInterval * (_middleButtonViews.count - 1)) / _middleButtonViews.count;
+        for (UIButton *button in _middleButtonViews) {
             CGRect btnFrame = CGRectMake(leftX, itemTop, itemWid, itemHei);
             button.frame = btnFrame;
             button.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
@@ -126,7 +128,7 @@
         }
     }else{
         _rScrollView.contentSize = CGSizeMake(_scrollItemTotalWidth, CGRectGetHeight(_rScrollView.bounds));
-        for (UIButton *button in _middleButtonView) {
+        for (UIButton *button in _middleButtonViews) {
             CGRect btnFrame = CGRectMake(leftX, itemTop, button.crScrollRealWidth, itemHei);
             button.frame = btnFrame;
             button.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleLeftMargin;
@@ -180,50 +182,23 @@
         }
     }else if (item.image){
         [button setImage:item.image forState:UIControlStateNormal];
-        btnSize = _config.imageSize;
-    }
-    btnSize.width += (_config.itemPadding.left + _config.itemPadding.right);    // 扩大范围
-    button.bounds = CGRectMake(0, 0, btnSize.width, btnSize.height);
-}
-
-- (void)configScrollItemButton:(UIButton *)button item:(UIBarButtonItem *)item{
-    if (nil == button || nil == item) {
-        return;
-    }
-    
-    CGSize btnSize = CGSizeZero;
-    if (item.title && item.title.length > 0) {
-        [button setTitle:item.title forState:UIControlStateNormal];
-        [button.titleLabel setFont:_config.titleFont];
-        [button setTitleColor:UIColor.blackColor forState:UIControlStateNormal];
-        
-        for (NSNumber *state in _config.allStates) {
-            NSDictionary *attributeDic = [_config titleTextAttributesForState:state.unsignedIntegerValue];
-            NSAttributedString *attributeString = [[NSAttributedString alloc] initWithString:item.title attributes:attributeDic];
-            [button setAttributedTitle:attributeString forState:state.unsignedIntegerValue];
-        }
-        
-        if ([_config titleTextAttributesForState:UIControlStateNormal]) {
-            CGRect textRect = [item.title boundingRectWithSize:CGSizeMake(375, 375) options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading attributes:[_config titleTextAttributesForState:UIControlStateNormal] context:nil];
-            btnSize = textRect.size;
-        }else{
-            CGRect textRect = [item.title boundingRectWithSize:CGSizeMake(375, 375) options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading attributes:@{NSFontAttributeName:_config.titleFont} context:nil];
-            btnSize = textRect.size;
-        }
-    }else if (item.image){
-        [button setImage:item.image forState:UIControlStateNormal];
         button.imageView.contentMode = UIViewContentModeScaleAspectFit;
         btnSize = _config.imageSize;
     }
-    btnSize.width += (_config.scrollItemOffset * 2);        // 扩大范围
     button.bounds = CGRectMake(0, 0, btnSize.width, btnSize.height);
-    button.crScrollRealWidth = btnSize.width;
-    button.backgroundColor = UIColor.whiteColor;
-#if BKCOLOR
-    button.backgroundColor = UIColor.redColor ;
-#endif
 }
 
+- (void)extendSideButton:(UIButton *)button{
+    CGSize btnSize = button.bounds.size;
+    btnSize.width += (_config.itemPadding.left + _config.itemPadding.right);
+    button.bounds = CGRectMake(0, 0, btnSize.width, btnSize.height);
+}
+
+- (void)extendScrollButton:(UIButton *)button{
+    CGSize btnSize = button.bounds.size;
+    btnSize.width += (_config.scrollItemOffset * 2);
+    button.bounds = CGRectMake(0, 0, btnSize.width, btnSize.height);
+}
 
 #pragma mark - Function
 - (void)selecteIndex:(NSUInteger)index{
@@ -263,44 +238,73 @@
 }
 
 #pragma mark - Setter & Getter
-- (void)setLeftItem:(NSArray<UIBarButtonItem *> *)leftItem{
-    _leftItem = [leftItem copy];
-    [self setSideItems:_leftItem viewContain:_leftButtonView];
-}
-
-- (void)setRightItem:(NSArray<UIBarButtonItem *> *)rightItem{
-    _rightItem = [rightItem copy];
-    [self setSideItems:_rightItem viewContain:_rightButtonView];
-}
-
-- (void)setSideItems:(NSArray<UIBarButtonItem *> *)items viewContain:(NSMutableArray *)views{
-    [views removeAllObjects];
-    for (UIBarButtonItem *item in items) {
+- (void)setLeftItems:(NSArray<UIBarButtonItem *> *)leftItem{
+    _leftItems = [leftItem copy];
+    
+    if (leftItem.count) {
+        _leftContainView = [[UIView alloc] init];
+        [self addSubview:_leftContainView];
+    }else if (_leftContainView){
+        [_leftContainView removeFromSuperview];
+        _leftContainView = nil;
+    }
+    
+    for (UIBarButtonItem *item in _leftItems) {
         UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
         [self configButton:button item:item];
+        [self extendSideButton:button];
+        button.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleRightMargin;
         [button addTarget:item.target action:item.action forControlEvents:UIControlEventTouchUpInside];
-        [views addObject:button];
-        [self addSubview:button];
+        
+        [_leftContainView addSubview:button];
     }
+    _refreshLeft = YES;
+    [self setNeedsLayout];
 }
 
-- (void)setMiddleItem:(NSArray<CRScrollBarItem *> *)middleItem{
-    _middleItem = [middleItem copy];
-    [_middleButtonView removeAllObjects];
+- (void)setRightItems:(NSArray<UIBarButtonItem *> *)rightItem{
+    _rightItems = [rightItem copy];
+    
+    if (rightItem.count) {
+         _leftContainView = [[UIView alloc] init];
+         [self addSubview:_leftContainView];
+     }else if (_leftContainView){
+         [_leftContainView removeFromSuperview];
+         _leftContainView = nil;
+     }
+    
+    for (UIBarButtonItem *item in _leftItems) {
+        UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
+        [self configButton:button item:item];
+        [self extendSideButton:button];
+        button.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleLeftMargin;
+        [button addTarget:item.target action:item.action forControlEvents:UIControlEventTouchUpInside];
+        
+        [self addSubview:button];
+    }
+    _refreshRight = YES;
+    [self setNeedsLayout];
+}
+
+- (void)setMiddleItems:(NSArray<CRScrollBarItem *> *)middleItem{
+    _middleItems = [middleItem copy];
+    [_middleButtonViews removeAllObjects];
     
     _scrollItemFixed = YES;
-    if (_middleItem.count < 1) {
+    if (_middleItems.count < 1) {
         return;
     }
     
     _scrollItemTotalWidth = 0;
     NSInteger tagOffset = kTagOffset;
-    for (UIBarButtonItem *item in _middleItem) {
+    for (UIBarButtonItem *item in _middleItems) {
         UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
-        [self configScrollItemButton:button item:item];
-        button.tag = tagOffset++;
+        [self configButton:button item:item];
+        [self extendScrollButton:button];
         [button addTarget:self action:@selector(clickScrollButton:) forControlEvents:UIControlEventTouchUpInside];
-        [_middleButtonView addObject:button];
+        
+        button.tag = tagOffset++;
+        [_middleButtonViews addObject:button];
         [_rScrollView addSubview:button];
         _scrollItemTotalWidth += button.crScrollRealWidth;
     }
@@ -313,13 +317,14 @@
     return _selectedIndex;
 }
 
+#pragma mark - view config
 - (void)setTintColor:(UIColor *)tintColor{
     if (self.tintColor == tintColor) {
         return;
     }
     _tintColor = tintColor;
-    for (UIButton *btn in _middleButtonView) {
-        [btn setTintColor:tintColor];
+    for (UIButton *btn in _middleButtonViews) {
+        [btn setBackgroundColor:tintColor];
     }
 }
 
@@ -328,7 +333,7 @@
         return;
     }
     _selectedColor = selectedColor;
-    for (UIButton *btn in _middleButtonView) {
+    for (UIButton *btn in _middleButtonViews) {
         [btn setTitleColor:selectedColor forState:UIControlStateSelected];
     }
 }

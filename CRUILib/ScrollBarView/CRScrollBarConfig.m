@@ -25,7 +25,7 @@
     config.titleFont = [UIFont systemFontOfSize:14];
     config.scrollItemInterval = 2;
     config.scrollItemOffset = 8;
-    config.scrollPadding = UIEdgeInsetsMake(4, 0, 4, 0);
+    config.scrollPadding = UIEdgeInsetsMake(0, 0, 4, 0);
     return config;
 }
 
