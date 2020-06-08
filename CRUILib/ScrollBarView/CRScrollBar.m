@@ -33,7 +33,8 @@
     
     BOOL _refreshLeft;                  // 是否刷新左侧
     BOOL _refreshRight;                 // 是否刷新右侧
-    BOOL _recordItemHeight;             // 记录Item高度
+    BOOL _refreshMiddle;                // 是否刷新中间
+    CGFloat _recordItemHeight;          // 记录Item高度
 }
 
 @end
@@ -56,50 +57,76 @@
 }
 
 - (void)createScrollView{
-    _rScrollView = [[UIScrollView alloc] init];
+    _rScrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(_config.padding.left, _config.padding.top, self.bounds.size.width - _config.padding.left - _config.padding.right, self.bounds.size.height - _config.padding.top - _config.padding.bottom)];
     _rScrollView.showsVerticalScrollIndicator = NO;
     _rScrollView.showsHorizontalScrollIndicator = NO;
     _rScrollView.decelerationRate = UIScrollViewDecelerationRateFast;
     [self addSubview:_rScrollView];
-    _rScrollView.backgroundColor = UIColor.whiteColor;
+    _rScrollView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
 }
 
 #pragma mark - view
 - (void)layoutSubviews{
     [super layoutSubviews];
 
-    CGFloat itemTop = _config.padding.top + _config.itemMargin.top;
-    CGFloat leftX = _config.padding.left;
-    CGFloat rightX = CGRectGetWidth(self.bounds) - _config.padding.right;
+    CGFloat sideItemTop = _config.itemMargin.top;
+    CGFloat sideItemHei = self.bounds.size.height - _config.padding.top - _config.padding.bottom - _config.itemMargin.top - _config.itemMargin.bottom;
+    BOOL heightChange = sideItemHei != _recordItemHeight;
+    _recordItemHeight = sideItemHei;
     
-    CGFloat itemHei = self.bounds.size.height - _config.padding.top - _config.padding.bottom - _config.itemMargin.top - _config.itemMargin.bottom;
-    BOOL heightChange = itemHei == _recordItemHeight;
-
     /// left
-    if (heightChange && _refreshLeft) {
+    if (heightChange || _refreshLeft) {
+        if (!_leftContainView ) {
+            _refreshLeft = NO;
+            return;
+        }
+        CGFloat leftX = 0;
         for (UIButton *button in _leftContainView.subviews) {
-            CGRect btnFrame = CGRectMake(0, itemTop, CGRectGetWidth(button.bounds), itemHei);
+            CGRect btnFrame = CGRectMake(0, sideItemTop, CGRectGetWidth(button.bounds), sideItemHei);
             btnFrame.origin.x = leftX + _config.itemMargin.left;
             button.frame = btnFrame;
             
-            leftX += (btnFrame.size.width + _config.itemMargin.left + _config.itemMargin.right);
+            leftX = (CGRectGetMaxX(btnFrame) + _config.itemMargin.right);
         }
+        CGRect leftFrame = _leftContainView.frame;
+        leftFrame.size.width = leftX;
+        _leftContainView.frame = leftFrame;
+        
+        _refreshLeft = NO;
     }
     
     /// right
-    if (heightChange && _refreshRight) {
-        for (UIButton *button in _rightContainView.subviews) {
-            CGRect btnFrame = CGRectMake(0, itemTop, CGRectGetWidth(button.bounds), itemHei);
-            btnFrame.origin.x = (rightX - _config.itemMargin.left - _config.itemMargin.right - CGRectGetWidth(btnFrame));
-            button.frame = btnFrame;
-            button.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleLeftMargin;
-            
-            rightX -= (btnFrame.size.width + _config.itemMargin.left + _config.itemMargin.right);
+    if (heightChange || _refreshRight) {
+        if (!_rightContainView) {
+            _refreshRight = NO;
+            return;
         }
+        CGFloat rightX = CGRectGetMaxX(_rightContainView.bounds);
+        for (UIButton *button in _rightContainView.subviews) {
+            CGRect btnFrame = CGRectMake(0, sideItemTop, CGRectGetWidth(button.bounds), sideItemHei);
+            btnFrame.origin.x = (rightX - _config.itemMargin.right - CGRectGetWidth(btnFrame));
+            button.frame = btnFrame;
+        
+            rightX = (CGRectGetMinX(btnFrame) - _config.itemMargin.left);
+        }
+        CGRect rightFrame = _rightContainView.frame;
+        rightFrame.size.width = CGRectGetWidth(rightFrame) - rightX;
+        rightFrame.origin.x = CGRectGetWidth(self.bounds) - rightFrame.size.width - _config.padding.right;
+        _rightContainView.frame = rightFrame;
+        
+        _refreshRight = NO;
     }
-    CGRect scrollVFrame = CGRectMake(leftX, itemTop, MAX(0, rightX - leftX) , itemHei);
+    CGRect scrollVFrame = _rScrollView.frame;
+    BOOL scrollWidthRecord = scrollVFrame.size.width;
+    scrollVFrame.origin.x = _leftContainView ? (CGRectGetMaxX(_leftContainView.frame)) : (_config.padding.left);
+    CGFloat scrollRight = _rightContainView ? (CGRectGetMinX(_rightContainView.frame)) : (CGRectGetWidth(self.bounds) - _config.padding.right);
+    scrollVFrame.size.width = MAX(0, scrollRight - scrollVFrame.origin.x);
     _rScrollView.frame = scrollVFrame;
-    [self layoutScrollViewSubviews];
+    
+    if (heightChange || _refreshMiddle || scrollWidthRecord != scrollVFrame.size.width) {
+        // 改变刷新
+        [self layoutScrollViewSubviews];
+    }
 }
 
 - (void)layoutScrollViewSubviews{
@@ -140,18 +167,21 @@
 
 #pragma mark - Refresh View
 - (void)refreshLeftItem{
-    
+    _refreshLeft = YES;
+    [self setNeedsLayout];
 }
 - (void)refreshRightItem{
-    UITableView *tt;
+    _refreshRight = YES;
+    [self setNeedsLayout];
 }
 - (void)refreshMiddleItem{
-    
+    _refreshMiddle = YES;
+    [self setNeedsLayout];
 }
 - (void)refreshAllItem{
-    [self refreshLeftItem];
-    [self refreshRightItem];
-    [self refreshMiddleItem];
+    _refreshLeft = YES;
+    _refreshRight = YES;
+    _recordItemHeight = YES;
     [self setNeedsLayout];
 }
 
@@ -241,8 +271,12 @@
 - (void)setLeftItems:(NSArray<UIBarButtonItem *> *)leftItem{
     _leftItems = [leftItem copy];
     
-    if (leftItem.count) {
-        _leftContainView = [[UIView alloc] init];
+    if (_leftItems.count) {
+        if (!_leftContainView) {
+            CGRect leftViewFrame = CGRectMake(_config.padding.left, _config.padding.top, CGFLOAT_MIN, CGRectGetHeight(self.bounds) - _config.padding.top - _config.padding.bottom);
+            _leftContainView = [[UIView alloc] initWithFrame:leftViewFrame];
+            _leftContainView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleRightMargin;
+        }
         [self addSubview:_leftContainView];
     }else if (_leftContainView){
         [_leftContainView removeFromSuperview];
@@ -266,27 +300,32 @@
     _rightItems = [rightItem copy];
     
     if (rightItem.count) {
-         _leftContainView = [[UIView alloc] init];
-         [self addSubview:_leftContainView];
+        if (!_rightContainView) {
+            CGRect rightViewFrame = CGRectMake(_config.itemMargin.right - CGFLOAT_MIN, _config.padding.top, CGFLOAT_MIN, CGRectGetHeight(self.bounds)-_config.padding.top - _config.padding.bottom);
+            _rightContainView = [[UIView alloc] initWithFrame:rightViewFrame];
+            _rightContainView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleLeftMargin;
+        }
+         [self addSubview:_rightContainView];
      }else if (_leftContainView){
-         [_leftContainView removeFromSuperview];
-         _leftContainView = nil;
+         [_rightContainView removeFromSuperview];
+         _rightContainView = nil;
      }
     
-    for (UIBarButtonItem *item in _leftItems) {
+    for (UIBarButtonItem *item in _rightItems) {
         UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
         [self configButton:button item:item];
         [self extendSideButton:button];
         button.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleLeftMargin;
         [button addTarget:item.target action:item.action forControlEvents:UIControlEventTouchUpInside];
         
-        [self addSubview:button];
+        [_rightContainView addSubview:button];
     }
     _refreshRight = YES;
     [self setNeedsLayout];
 }
 
 - (void)setMiddleItems:(NSArray<CRScrollBarItem *> *)middleItem{
+    _refreshMiddle = YES;
     _middleItems = [middleItem copy];
     [_middleButtonViews removeAllObjects];
     
@@ -300,6 +339,7 @@
     for (UIBarButtonItem *item in _middleItems) {
         UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
         [self configButton:button item:item];
+        button.crScrollRealWidth = CGRectGetWidth(button.bounds);
         [self extendScrollButton:button];
         [button addTarget:self action:@selector(clickScrollButton:) forControlEvents:UIControlEventTouchUpInside];
         
