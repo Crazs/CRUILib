@@ -6,7 +6,7 @@
 //
 
 #import <UIKit/UIKit.h>
-#import "CRScrollBar.h"
+#import "CRScrollSelectBar.h"
 
 NS_ASSUME_NONNULL_BEGIN
 @class CRScrollBarController;
@@ -32,7 +32,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CRScrollBarController : UIViewController
 
-@property (nonatomic, strong) CRScrollBar *scrollBar;
+@property (nonatomic, strong) CRScrollSelectBar *scrollBar;
 @property (nonatomic, weak) id<CRScrollBarControllerDelegate> delegate;
 
 @property (nonatomic, copy) NSArray<__kindof UIViewController *> *viewControllers;

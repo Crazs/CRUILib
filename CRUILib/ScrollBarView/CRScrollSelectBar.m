@@ -1,11 +1,11 @@
 //
-//  CRScrollSelectedBar.m
+//  CRScrollSelectBar.m
 //  CRUILib
 //
 //  Created by Crazs on 2020/6/5.
 //
 
-#import "CRScrollSelectedBar.h"
+#import "CRScrollSelectBar.h"
 
 #define D_kTagOffset    [CRScrollBar tagOffset]
 
@@ -17,12 +17,12 @@ const static NSUInteger gDefaultSelectIdx = 0xFFFF;
 - (void)createScrollView;
 @end
 
-@interface CRScrollSelectedBar () {
+@interface CRScrollSelectBar () {
     NSUInteger _selectedIndex;
 }
 @end
 
-@implementation CRScrollSelectedBar
+@implementation CRScrollSelectBar
 
 - (instancetype)initWithConfig:(CRScrollBarConfig *)config{
     self = [super initWithConfig:config];

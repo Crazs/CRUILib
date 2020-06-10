@@ -193,7 +193,7 @@ const static NSString *kMiddleItemBindKey   = @"MiddleBarItemBindKey";
 }
 
 #pragma mark - Config Button
-- (void)configButton:(UIButton *)button item:(UIBarButtonItem *)item{
+- (void)configButton:(UIButton *)button item:(UIBarItem *)item{
     if (nil == button || nil == item) {
         return;
     }
@@ -249,15 +249,15 @@ const static NSString *kMiddleItemBindKey   = @"MiddleBarItemBindKey";
 - (void)setLeftItems:(NSArray<UIBarButtonItem *> *)leftItem{
     _leftItems = [leftItem copy];
     
+    NSMutableDictionary *leftItenBindDict;
     if (_leftItems.count) {
-        if (!_leftContainView) {
-            CGRect leftViewFrame = CGRectMake(_config.padding.left, _config.padding.top, CGFLOAT_MIN, CGRectGetHeight(self.bounds) - _config.padding.top - _config.padding.bottom);
-            _leftContainView = [[UIView alloc] initWithFrame:leftViewFrame];
-            _leftContainView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleRightMargin;
-            
-            [_barItemBindDict setObject:[NSMutableDictionary new] forKey:kLeftItemBindKey];
-        }
+        CGRect leftViewFrame = CGRectMake(_config.padding.left, _config.padding.top, CGFLOAT_MIN, CGRectGetHeight(self.bounds) - _config.padding.top - _config.padding.bottom);
+        _leftContainView = [[UIView alloc] initWithFrame:leftViewFrame];
+        _leftContainView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleRightMargin;
         [self addSubview:_leftContainView];
+
+        leftItenBindDict = [[NSMutableDictionary alloc] initWithCapacity:leftItem.count];
+        [_barItemBindDict setObject:leftItenBindDict forKey:kLeftItemBindKey];
     }else if (_leftContainView){
         [_leftContainView removeFromSuperview];
         _leftContainView = nil;
@@ -265,14 +265,17 @@ const static NSString *kMiddleItemBindKey   = @"MiddleBarItemBindKey";
         [_barItemBindDict removeObjectForKey:kLeftItemBindKey];
     }
     
+     
     for (UIBarButtonItem *item in _leftItems) {
         UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
         [self configButton:button item:item];
         [self extendSideButton:button];
         button.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleRightMargin;
         [button addTarget:item.target action:item.action forControlEvents:UIControlEventTouchUpInside];
-        
         [_leftContainView addSubview:button];
+        
+        [leftItenBindDict setObject:button forKey:@(item.hash).stringValue];
+        [self addItemObserver:item];
     }
     _refreshLeft = YES;
     [self setNeedsLayout];
@@ -281,15 +284,15 @@ const static NSString *kMiddleItemBindKey   = @"MiddleBarItemBindKey";
 - (void)setRightItems:(NSArray<UIBarButtonItem *> *)rightItem{
     _rightItems = [rightItem copy];
     
+    NSMutableDictionary *rightItenBindDict;
     if (rightItem.count) {
-        if (!_rightContainView) {
-            CGRect rightViewFrame = CGRectMake(_config.itemMargin.right - CGFLOAT_MIN, _config.padding.top, CGFLOAT_MIN, CGRectGetHeight(self.bounds)-_config.padding.top - _config.padding.bottom);
-            _rightContainView = [[UIView alloc] initWithFrame:rightViewFrame];
-            _rightContainView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleLeftMargin;
-            
-            [_barItemBindDict setObject:[NSMutableDictionary new] forKey:kRightItemBindKey];
-        }
-         [self addSubview:_rightContainView];
+        CGRect rightViewFrame = CGRectMake(_config.itemMargin.right - CGFLOAT_MIN, _config.padding.top, CGFLOAT_MIN, CGRectGetHeight(self.bounds)-_config.padding.top - _config.padding.bottom);
+        _rightContainView = [[UIView alloc] initWithFrame:rightViewFrame];
+        _rightContainView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleLeftMargin;
+        [self addSubview:_rightContainView];
+
+        rightItenBindDict = [[NSMutableDictionary alloc] init];
+        [_barItemBindDict setObject:rightItenBindDict forKey:kRightItemBindKey];
      }else if (_leftContainView){
          [_rightContainView removeFromSuperview];
          _rightContainView = nil;
@@ -303,8 +306,10 @@ const static NSString *kMiddleItemBindKey   = @"MiddleBarItemBindKey";
         [self extendSideButton:button];
         button.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleLeftMargin;
         [button addTarget:item.target action:item.action forControlEvents:UIControlEventTouchUpInside];
-        
         [_rightContainView addSubview:button];
+        
+        [rightItenBindDict setObject:button forKey:@(item.hash).stringValue];
+        [self addItemObserver:item];
     }
     _refreshRight = YES;
     [self setNeedsLayout];
@@ -327,7 +332,7 @@ const static NSString *kMiddleItemBindKey   = @"MiddleBarItemBindKey";
     NSMutableDictionary *middleItenBindDict = [[NSMutableDictionary alloc] init];
     [_barItemBindDict setObject:middleItenBindDict forKey:kMiddleItemBindKey];
 
-    for (UIBarButtonItem *item in _middleItems) {
+    for (CRScrollBarItem *item in _middleItems) {
         // 创建并设置button的属性
         UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
         [self configButton:button item:item];
@@ -341,8 +346,9 @@ const static NSString *kMiddleItemBindKey   = @"MiddleBarItemBindKey";
         [_rScrollView addSubview:button];
         _scrollItemTotalWidth += button.crScrollRealWidth;
         
-
+        
         // 监听item的属性变化
+        [middleItenBindDict setObject:button forKey:@(item.hash).stringValue];
         [self addItemObserver:item];
     }
     _scrollItemTotalWidth += ((middleItem.count - 1) * _config.scrollItemInterval);  // 间隙
@@ -353,19 +359,48 @@ const static NSString *kMiddleItemBindKey   = @"MiddleBarItemBindKey";
 #define D_keyPath_title     @"title"
 #define D_keyPath_image     @"image"
 
-- (void)addItemObserver:(UIBarButtonItem *)item{
+- (void)addItemObserver:(UIBarItem *)item{
     [item addObserver:self forKeyPath:D_keyPath_title options:NSKeyValueObservingOptionNew context:nil];
     [item addObserver:self forKeyPath:D_keyPath_image options:NSKeyValueObservingOptionNew context:nil];
 }
 
+
+
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context{
     
-    if ([keyPath isEqualToString:D_keyPath_title]) {
-        
-    }else if ([keyPath isEqualToString:D_keyPath_image]) {
-        
-    }else{
+    if (![object isKindOfClass:[UIBarItem class]]) {
         [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+        return;
+    }else if (![keyPath isEqualToString:D_keyPath_title] &&
+              ![keyPath isEqualToString:D_keyPath_image]) {
+        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+        return;
+    }else{
+        if (!_barItemBindDict) {
+            return;
+        }
+        UIButton *refreshButton;
+        NSString *refreshSymbString;
+        for (NSString *keyString in [_barItemBindDict allKeys]) {
+            NSMutableDictionary *containDic = _barItemBindDict[keyString];
+            if ([containDic objectForKey:@(((UIBarItem *)object).hash).stringValue]) {
+                refreshSymbString = keyString;
+                refreshButton = [containDic objectForKey:@(((UIBarItem *)object).hash).stringValue];
+                break;;
+            }
+        }
+
+        if ([refreshSymbString isEqualToString:(NSString *)kLeftItemBindKey]) {
+            _refreshLeft = YES;
+        }else if ([refreshSymbString isEqualToString:(NSString *)kRightItemBindKey]) {
+            _refreshRight = YES;
+        }else if ([refreshSymbString isEqualToString:(NSString *)kMiddleItemBindKey]) {
+            _refreshMiddle = YES;
+        }
+        if (refreshButton) {
+            [self configButton:refreshButton item:object];
+        }
+        [self setNeedsLayout];
     }
 }
 

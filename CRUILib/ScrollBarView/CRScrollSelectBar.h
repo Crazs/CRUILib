@@ -1,5 +1,5 @@
 //
-//  CRScrollSelectedBar.h
+//  CRScrollSelectBar.h
 //  CRUILib
 //
 //  Created by Crazs on 2020/6/5.
@@ -9,7 +9,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface CRScrollSelectedBar : CRScrollBar
+@interface CRScrollSelectBar : CRScrollBar
 
 @property (nonatomic, strong) CALayer *shadowLayer;
 
