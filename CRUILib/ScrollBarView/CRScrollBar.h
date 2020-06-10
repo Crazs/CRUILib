@@ -37,8 +37,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy) NSArray<UIBarButtonItem *> *rightItems;
 @property (nonatomic, copy) NSArray<CRScrollBarItem *> *middleItems;
 
-@property (nonatomic, assign, readonly) NSUInteger indexForSelected;    // 如果没有任何选中，返回0xFFFF
-
 @property (nonatomic, strong) UIColor *tintColor;
 @property (nonatomic, strong) UIColor *selectedColor;
 
@@ -48,18 +46,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithConfig:(CRScrollBarConfig *)config;
 
 /**
- @brief     选中index
- */
-- (void)selecteIndex:(NSUInteger)index;
-- (void)selecteIndex:(NSUInteger)index animal:(BOOL)animal;
-/**
- @brief     取消选中index
- */
-- (void)deselectIndex:(NSUInteger)index;
-- (void)deselectIndex:(NSUInteger)index animal:(BOOL)animal;
-/**
  @brief     刷新功能，刷新局部
- @note      暂时先不做
  */
 - (void)refreshLeftItem;
 - (void)refreshRightItem;

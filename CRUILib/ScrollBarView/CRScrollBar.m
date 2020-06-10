@@ -9,8 +9,12 @@
 #import "CRScrollBar.h"
 #import <objc/runtime.h>
 
-#define kTagOffset          1000
-#define kDefaultSelectIdx   0xFFFF
+
+const static NSInteger kTagOffset = 1000;
+
+const static NSString *kLeftItemBindKey     = @"LeftBarItemBindKey";
+const static NSString *kRightItemBindKey    = @"RightBarItemBindKey";
+const static NSString *kMiddleItemBindKey   = @"MiddleBarItemBindKey";
 
 /**
  @brief 记录button 宽度
@@ -21,25 +25,28 @@
 
 
 @interface CRScrollBar (){
-    UIScrollView *_rScrollView;
     UIView *_leftContainView;
     UIView *_rightContainView;
-//    NSMutableArray *_leftButtonViews;
-//    NSMutableArray *_rightButtonViews;
+
     NSMutableArray *_middleButtonViews;
     BOOL _scrollItemFixed;              // scroll item 是否采用固定宽度
     CGFloat _scrollItemTotalWidth;      // scroll item 的整体宽度（包含间隔）
-    NSUInteger _selectedIndex;
     
     BOOL _refreshLeft;                  // 是否刷新左侧
     BOOL _refreshRight;                 // 是否刷新右侧
     BOOL _refreshMiddle;                // 是否刷新中间
     CGFloat _recordItemHeight;          // 记录Item高度
+    
+    NSMutableDictionary *_barItemBindDict;   // item绑定的信息
 }
+@property (nonatomic, strong) UIScrollView *rScrollView;
 
 @end
 
 @implementation CRScrollBar
++ (NSInteger)tagOffset{
+    return kTagOffset;
+}
 
 - (instancetype)init{
     return [self initWithConfig:[CRScrollBarConfig defaultConfig]];
@@ -49,7 +56,7 @@
     if (self) {
         _config = config;
         _middleButtonViews = [[NSMutableArray alloc] initWithCapacity:0];
-        _selectedIndex = kDefaultSelectIdx;
+        _barItemBindDict = [[NSMutableDictionary alloc] initWithCapacity:0];
         
         [self createScrollView];
     }
@@ -185,7 +192,7 @@
     [self setNeedsLayout];
 }
 
-#pragma mark - Refresh Button
+#pragma mark - Config Button
 - (void)configButton:(UIButton *)button item:(UIBarButtonItem *)item{
     if (nil == button || nil == item) {
         return;
@@ -230,41 +237,12 @@
     button.bounds = CGRectMake(0, 0, btnSize.width, btnSize.height);
 }
 
-#pragma mark - Function
-- (void)selecteIndex:(NSUInteger)index{
-    if (self.delegate && [self.delegate respondsToSelector:@selector(crScrollBar:canSelectIndex:)] && ![self.delegate crScrollBar:self canSelectIndex:index]) {
-        return;
-    }
-    UIButton *selectBtn = [_rScrollView viewWithTag:kTagOffset + index];
-    if (selectBtn) {
-        if (index != _selectedIndex && kDefaultSelectIdx != _selectedIndex) {
-            [self deselectIndex:_selectedIndex];
-        }
-        
-        // 2.选中当前
-        selectBtn.selected = YES;
-        _selectedIndex = index;
-        if ([self.delegate respondsToSelector:@selector(crScrollBar:didSelectedIndex:)]) {
-            [self.delegate crScrollBar:self didSelectedIndex:_selectedIndex];
-        }
-    }
-}
-
-- (void)deselectIndex:(NSUInteger)index{
-    UIButton *selectedBtn = [_rScrollView viewWithTag:kTagOffset + index];
-    if (selectedBtn && selectedBtn.selected) {
-        selectedBtn.selected = NO;
-        if ([self.delegate respondsToSelector:@selector(crScrollBar:didDeselectedIndex:)]) {
-            [self.delegate crScrollBar:self didDeselectedIndex:_selectedIndex];
-        }
-        _selectedIndex = kDefaultSelectIdx;
-    }
-}
-
+#
 
 - (void)clickScrollButton:(UIButton *)button{
-    
-    [self selecteIndex:button.tag - kTagOffset];
+    if (self.delegate && [self.delegate respondsToSelector:@selector(crScrollBar:canSelectIndex:)] && ![self.delegate crScrollBar:self canSelectIndex:button.tag - kTagOffset]) {
+        return;
+    }
 }
 
 #pragma mark - Setter & Getter
@@ -276,11 +254,15 @@
             CGRect leftViewFrame = CGRectMake(_config.padding.left, _config.padding.top, CGFLOAT_MIN, CGRectGetHeight(self.bounds) - _config.padding.top - _config.padding.bottom);
             _leftContainView = [[UIView alloc] initWithFrame:leftViewFrame];
             _leftContainView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleRightMargin;
+            
+            [_barItemBindDict setObject:[NSMutableDictionary new] forKey:kLeftItemBindKey];
         }
         [self addSubview:_leftContainView];
     }else if (_leftContainView){
         [_leftContainView removeFromSuperview];
         _leftContainView = nil;
+        
+        [_barItemBindDict removeObjectForKey:kLeftItemBindKey];
     }
     
     for (UIBarButtonItem *item in _leftItems) {
@@ -304,11 +286,15 @@
             CGRect rightViewFrame = CGRectMake(_config.itemMargin.right - CGFLOAT_MIN, _config.padding.top, CGFLOAT_MIN, CGRectGetHeight(self.bounds)-_config.padding.top - _config.padding.bottom);
             _rightContainView = [[UIView alloc] initWithFrame:rightViewFrame];
             _rightContainView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleLeftMargin;
+            
+            [_barItemBindDict setObject:[NSMutableDictionary new] forKey:kRightItemBindKey];
         }
          [self addSubview:_rightContainView];
      }else if (_leftContainView){
          [_rightContainView removeFromSuperview];
          _rightContainView = nil;
+         
+         [_barItemBindDict removeObjectForKey:kRightItemBindKey];
      }
     
     for (UIBarButtonItem *item in _rightItems) {
@@ -328,6 +314,7 @@
     _refreshMiddle = YES;
     _middleItems = [middleItem copy];
     [_middleButtonViews removeAllObjects];
+    [_barItemBindDict removeObjectForKey:kMiddleItemBindKey];
     
     _scrollItemFixed = YES;
     if (_middleItems.count < 1) {
@@ -336,25 +323,50 @@
     
     _scrollItemTotalWidth = 0;
     NSInteger tagOffset = kTagOffset;
+
+    NSMutableDictionary *middleItenBindDict = [[NSMutableDictionary alloc] init];
+    [_barItemBindDict setObject:middleItenBindDict forKey:kMiddleItemBindKey];
+
     for (UIBarButtonItem *item in _middleItems) {
+        // 创建并设置button的属性
         UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
         [self configButton:button item:item];
         button.crScrollRealWidth = CGRectGetWidth(button.bounds);
         [self extendScrollButton:button];
         [button addTarget:self action:@selector(clickScrollButton:) forControlEvents:UIControlEventTouchUpInside];
         
+        // 将button添加到view上
         button.tag = tagOffset++;
         [_middleButtonViews addObject:button];
         [_rScrollView addSubview:button];
         _scrollItemTotalWidth += button.crScrollRealWidth;
+        
+
+        // 监听item的属性变化
+        [self addItemObserver:item];
     }
     _scrollItemTotalWidth += ((middleItem.count - 1) * _config.scrollItemInterval);  // 间隙
 
     [self layoutScrollViewSubviews];
 }
+#pragma mark - KVO
+#define D_keyPath_title     @"title"
+#define D_keyPath_image     @"image"
 
-- (NSUInteger)indexForSelected{
-    return _selectedIndex;
+- (void)addItemObserver:(UIBarButtonItem *)item{
+    [item addObserver:self forKeyPath:D_keyPath_title options:NSKeyValueObservingOptionNew context:nil];
+    [item addObserver:self forKeyPath:D_keyPath_image options:NSKeyValueObservingOptionNew context:nil];
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context{
+    
+    if ([keyPath isEqualToString:D_keyPath_title]) {
+        
+    }else if ([keyPath isEqualToString:D_keyPath_image]) {
+        
+    }else{
+        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+    }
 }
 
 #pragma mark - view config
